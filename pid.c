@@ -1,107 +1,141 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
 #include "pid.h"
 
-#ifndef N_PIDS
-  #define N_PIDS 4
+#ifndef F_CPU
+  #define F_CPU 16000000UL
 #endif
 
-#ifndef PID_FREQ
-  #define PID_FREQ 100
-#endif
-
-float target[N_PIDS], err_i[N_PIDS], input_last[N_PIDS],
-      kp[N_PIDS], ki[N_PIDS], kd[N_PIDS];
-
-
-float pid_i_max[N_PIDS], pid_out_max[N_PIDS];
-float pid_i_min[N_PIDS], pid_out_min[N_PIDS];
-
+uint8_t pids_max = 0;
 uint8_t pid_n = 0;
+uint16_t pid_freq = 100;
 
-void (*pid_out[N_PIDS])(float);
-float (*pid_in[N_PIDS])(void);
+// struct containing everything for each pid controller
+typedef struct {
+  // Function pointers for input and output
+  void (*out)(float);
+  float (*in)(void);
+  // PID set point
+  float target;
+  // Previous input (for derivative)
+  float input_last;
+  // Coefficients
+  float kp;
+  float ki;
+  float kd;
+  // Integral error accumulator
+  float err_i;
+  // Limits for output and integral error
+  float i_max;
+  float i_min;
+  float out_max;
+  float out_min;
+} pid_t;
 
-void pid_setup(void) {
+pid_t* pids = NULL;
 
+void pid_default(pid_t* input) {
+  // Set function pointers before calling this
+  input->target = input->input_last = input->in();
+
+  // Coefficients to zero
+  input->kp = input->kd = input->ki = 0;
+
+  // Integral error set to zero
+  input->err_i = 0;
+
+  // Limits set to the max
+  input->i_max = input->out_max = 1E37;
+  input->i_min = input->out_min = -1E37;
+}
+
+void pid_setup(uint8_t n, uint16_t pfreq) {
+  pids_max = n;
+  pid_freq = pfreq;
+
+  pids = malloc(pids_max*sizeof(pid_t));
+
+  // Set main clock to 16MHz
+  CLKPR = (1<<CLKPCE);
+  CLKPR = 0;
   // Timer 1 to CTC, TOP is OCR1A
   TCCR1B |= _BV(WGM12);
   // Turn on timer 1, prescale 64
   TCCR1B |= _BV(CS11)|_BV(CS10);
   // set to 100Hz
-  OCR1A = 16E6/64/PID_FREQ;
+  OCR1A = F_CPU/64/pid_freq;
   // Unmask timer interrupt
   TIMSK1 |= _BV(OCIE1A);
   // Turn on interrupts
   sei();
-
-  for (uint8_t n = 0; n < N_PIDS; n++) {
-    pid_i_max[n] = pid_out_max[n] = 1E37;
-    pid_i_min[n] = pid_out_min[n] = -1E37;
-    kp[n] = kd[n] = ki[n] = 0;
-  }
 }
 
-void pid_add(float (*pid_input)(void), void (*pid_output)(float)) {
-  if (pid_n < N_PIDS) {
-    pid_out[pid_n] = pid_output;
-    pid_in[pid_n] = pid_input;
 
-    input_last[pid_n] = pid_in[pid_n]();
+void pid_add(float (*pid_input)(void), void (*pid_output)(float)) {
+  if (pid_n < pids_max && pids) {
+    pids[pid_n].out = pid_output;
+    pids[pid_n].in = pid_input;
+    pid_default(&pids[pid_n]);
 
     pid_n++;
   }
 }
 
 void pid_set_coefs(uint8_t n, float kp_in, float ki_in, float kd_in) {
-  if (n < pid_n) {
-    kp[n] = kp_in;
-    kd[n] = kd_in*PID_FREQ;
-    ki[n] = ki_in/PID_FREQ;
+  if (n < pid_n && pids) {
+    pids[n].kp = kp_in;
+    pids[n].kd = kd_in*pid_freq;
+    pids[n].ki = ki_in/pid_freq;
   }
 }
 
 void pid_set_target(uint8_t n, float target_in) {
-  if (n < pid_n)
-    target[n] = target_in;
+  if (n < pid_n && pids)
+    pids[n].target = target_in;
 }
 
 void pid_set_int_limits(uint8_t n, float min, float max) {
-  if (n < pid_n) {
-  pid_i_min[n] = min;
-  pid_i_max[n] = max;
+  if (n < pid_n && pids) {
+  pids[n].i_min = min;
+  pids[n].i_max = max;
   }
 }
 
 void pid_set_output_limits(uint8_t n, float min, float max) {
-  if (n < pid_n) {
-    pid_out_min[n] = min;
-    pid_out_max[n] = max;
+  if (n < pid_n && pids) {
+    pids[n].out_min = min;
+    pids[n].out_max = max;
   }
+}
+
+void pid_destroy(void) {
+  if (pids)
+    free(pids);
 }
 
 ISR(TIMER1_COMPA_vect) {
   float input, error, err_d, output;
 
   for (uint8_t n = 0; n < pid_n; n++) {
-    input = pid_in[n]();
-    error = target[n] - input;
+    input = pids[n].in();
+    error = pids[n].target - input;
 
-    err_i[n] += ki[n]*error;
+    pids[n].err_i += pids[n].ki*error;
 
-    if (err_i[n] > pid_i_max[n]) err_i[n] = pid_i_max[n];
-    if (err_i[n] < pid_i_min[n]) err_i[n] = pid_i_min[n];
+    if (pids[n].err_i > pids[n].i_max) pids[n].err_i = pids[n].i_max;
+    if (pids[n].err_i < pids[n].i_min) pids[n].err_i = pids[n].i_min;
 
-    err_d = input - input_last[n];
-    input_last[n] = input;
+    err_d = input - pids[n].input_last;
+    pids[n].input_last = input;
 
-    output = kp[n]*error - kd[n]*err_d + err_i[n];
+    output = pids[n].kp*error - pids[n].kd*err_d + pids[n].err_i;
 
-    if (output > pid_out_max[n]) output = pid_out_max[n];
-    if (output < pid_out_min[n]) output = pid_out_min[n];
+    if (output > pids[n].out_max) output = pids[n].out_max;
+    if (output < pids[n].out_min) output = pids[n].out_min;
 
-    pid_out[n](output);
+    pids[n].out(output);
   }
 }
