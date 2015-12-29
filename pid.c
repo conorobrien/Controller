@@ -116,7 +116,7 @@ void pid_destroy(void) {
     free(pids);
 }
 
-ISR(TIMER1_COMPA_vect) {
+ISR(TIMER1_COMPA_vect, ISR_NOBLOCK) {
   float input, error, err_d, output;
 
   for (uint8_t n = 0; n < pid_n; n++) {
