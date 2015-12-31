@@ -82,29 +82,32 @@ int main()
   m_disableJTAG();
   usb_init();
   while(!usb_configured());
-  while(!usb_rx_available());
+  // while(!usb_rx_available());
 
-
+//// PID TESTING
   init_led();
 
-  float target = 125;
+  // float target = 125;
 
-  // pid setup function, inits timer1 and needed variables
-  pid_setup(2, 100);
+  // // pid setup function, inits timer1 and needed variables
+  // pid_setup(2, 100);
 
-  // add two pid systems (max 4)
-  pid_add(&read_sys1, &set_sys1); //0
-  pid_add(&read_sys2, &set_sys2); //1
+  // // add two pid systems (max 4)
+  // pid_add(&read_sys1, &set_sys1); //0
+  // pid_add(&read_sys2, &set_sys2); //1
 
-  // Set pid coefficients and targets
-  pid_set_coefs(0, 50, 100, 30);
-  pid_set_coefs(1, 50, 0, 30);
-  pid_set_target(0,target);
-  pid_set_target(1,target);
+  // // Set pid coefficients and targets
+  // pid_set_coefs(0, 50, 100, 30);
+  // pid_set_coefs(1, 50, 0, 30);
+  // pid_set_target(0,target);
+  // pid_set_target(1,target);
 
+// ENCODER TESTING
+  enc_setup();
   while (1) {
-      _delay_ms(5000);
-      disturbance = (float)(rand()%1000) - 500;
+      _delay_ms(100);
+      m_usb_tx_long(enc_read());
+      m_usb_tx_string("\n");
       // target = (float)(rand()%256);
       // pid_set_target(0,target);
       // pid_set_target(1,target);

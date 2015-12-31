@@ -1,67 +1,49 @@
-# --------------------------------------------------------
-# Custom M2 Makefile
-# written by: Jonathan Bohren & Jonathan Fiene
-# updated: Feb 2, 2013
-# --------------------------------------------------------
+# Important directories
+INC_DIR = ./include/
+SRC_DIR = ./src/
+LIB_DIR = ./libs/
+BUILD_DIR = ./build/
 
-# --------------------------------------------------------
-# if you write separate C files to include in main,
-# add their .o targets to the CHILDREN line below
-# (e.g. "CHILDREN = myfile.o")
-#
-# to include code supplied by maevarm, add a .o target
-# tag to the parents line (e.g. "PARENTS = "m_bus.o")
-# --------------------------------------------------------
-MAIN       = main.o 
-CHILDREN   = pid.o
-PARENTS    = m_usb.o
+# Change for different avrs and clock speeds
+DEVICE = atmega32u4
+CLOCK = 16000000
 
-# --------------------------------------------------------
-# if you want to use one of our pre-compiled libraries,
-# add it to the line below (e.g. "LIBRARIES = libsaast.a")
-# --------------------------------------------------------
+# Compiler settings
+CC = avr-gcc
+CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm
 
-# --------------------------------------------------------
-# you shouldn't change anything below here,
-# unless you really know what you're doing
-# --------------------------------------------------------
-DEVICE     = atmega32u4
-CLOCK      = 16000000
+# Create target lists
+SRCS_OBJ = $(patsubst %.c,%.o,$(wildcard $(SRC_DIR)*.c))
+SRCS = $(subst $(SRC_DIR), $(BUILD_DIR), $(SRCS_OBJ))
+LIBS = $(wildcard $(LIB_DIR)/*.a)
 
-COMPILE = avr-gcc -std=c99 -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
-# symbolic targets: 
-all:	main.hex
+all: $(BUILD_DIR)main.hex
+	@echo $(SRCS)
 
-.c.o: 
-	$(COMPILE) -c $< -o $@
+$(BUILD_DIR)%.o: $(SRC_DIR)%.c
+	$(CC) $(CFLAGS) -c $< -o $@ -I $(INC_DIR)
 
-.S.o:
-	$(COMPILE) -x assembler-with-cpp -c $< -o $@
+$(BUILD_DIR)main.elf: $(SRCS)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)main.elf $(SRCS) $(LIBS)
 
-.c.s:
-	$(COMPILE) -S $< -o $@
-
-install: flash 
+$(BUILD_DIR)main.hex: $(BUILD_DIR)main.elf
+	rm -f $(BUILD_DIR)main.hex
+	avr-objcopy -j .text -j .data -O ihex $(BUILD_DIR)main.elf $(BUILD_DIR)main.hex
 
 flash: all
 	dfu-programmer atmega32u4 erase
-	dfu-programmer atmega32u4 flash main.hex
+	dfu-programmer atmega32u4 flash $(BUILD_DIR)main.hex
 
 clean:
-	rm -f main.hex main.elf $(MAIN) $(CHILDREN)
+	rm -r $(BUILD_DIR)
 
-# file targets:
-main.elf: $(MAIN) $(CHILDREN) $(PARENTS)
-	$(COMPILE) -o main.elf $(MAIN) $(CHILDREN) $(PARENTS) $(LIBRARIES) -lm
+disasm: $(BUILD_DIR)main.elf
+	avr-objdump -d $(BUILD_DIR)main.elf
 
-main.hex: main.elf
-	rm -f main.hex
-	avr-objcopy -j .text -j .data -O ihex main.elf main.hex
+# Build directory prerequisites
+$(SRCS): | $(BUILD_DIR)
 
-# Targets for code debugging and analysis:
-disasm:	main.elf
-	avr-objdump -d main.elf
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-cpp:
-	$(COMPILE) -E main.c
