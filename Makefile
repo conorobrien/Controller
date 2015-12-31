@@ -12,35 +12,37 @@ CLOCK = 16000000
 CC = avr-gcc
 CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm -MMD -MP
 
-# Create target lists
+# Create targets
 SRCS = $(wildcard $(SRC_DIR)*.c)
 OBJS = $(subst $(SRC_DIR), $(BUILD_DIR), $(SRCS:.c=.o))
 LIBS = $(wildcard $(LIB_DIR)/*.a)
 DEPS = $(OBJS:.o=.d)
+ELF = $(BUILD_DIR)main.elf
+HEX = $(BUILD_DIR)main.hex
 
-all: $(BUILD_DIR)main.hex
+all: $(HEX)
 
 -include $(DEPS)
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ -I $(INC_DIR)
 
-$(BUILD_DIR)main.elf: $(OBJS)
+$(ELF): $(OBJS)
 	$(CC) $(CFLAGS) -o $(BUILD_DIR)main.elf $(OBJS) $(LIBS)
 
-$(BUILD_DIR)main.hex: $(BUILD_DIR)main.elf
-	rm -f $(BUILD_DIR)main.hex
-	avr-objcopy -j .text -j .data -O ihex $(BUILD_DIR)main.elf $(BUILD_DIR)main.hex
+$(HEX): $(ELF)
+	rm -f $(HEX)
+	avr-objcopy -j .text -j .data -O ihex $(ELF) $(HEX)
 
 flash: all
 	dfu-programmer atmega32u4 erase
-	dfu-programmer atmega32u4 flash $(BUILD_DIR)main.hex
+	dfu-programmer atmega32u4 flash $(HEX)
 
 clean:
 	rm -r $(BUILD_DIR)
 
-disasm: $(BUILD_DIR)main.elf
-	avr-objdump -d $(BUILD_DIR)main.elf
+disasm: $(ELF)
+	avr-objdump -d $(ELF)
 
 # Build directory prerequisites
 $(OBJS): | $(BUILD_DIR)
