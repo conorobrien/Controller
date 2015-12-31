@@ -10,22 +10,23 @@ CLOCK = 16000000
 
 # Compiler settings
 CC = avr-gcc
-CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm
+CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm -MMD -MP
 
 # Create target lists
-SRCS_OBJ = $(patsubst %.c,%.o,$(wildcard $(SRC_DIR)*.c))
-SRCS = $(subst $(SRC_DIR), $(BUILD_DIR), $(SRCS_OBJ))
+SRCS = $(wildcard $(SRC_DIR)*.c)
+OBJS = $(subst $(SRC_DIR), $(BUILD_DIR), $(SRCS:.c=.o))
 LIBS = $(wildcard $(LIB_DIR)/*.a)
-
+DEPS = $(OBJS:.o=.d)
 
 all: $(BUILD_DIR)main.hex
-	@echo $(SRCS)
+
+-include $(DEPS)
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ -I $(INC_DIR)
 
-$(BUILD_DIR)main.elf: $(SRCS)
-	$(CC) $(CFLAGS) -o $(BUILD_DIR)main.elf $(SRCS) $(LIBS)
+$(BUILD_DIR)main.elf: $(OBJS)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)main.elf $(OBJS) $(LIBS)
 
 $(BUILD_DIR)main.hex: $(BUILD_DIR)main.elf
 	rm -f $(BUILD_DIR)main.hex
@@ -42,7 +43,7 @@ disasm: $(BUILD_DIR)main.elf
 	avr-objdump -d $(BUILD_DIR)main.elf
 
 # Build directory prerequisites
-$(SRCS): | $(BUILD_DIR)
+$(OBJS): | $(BUILD_DIR)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
