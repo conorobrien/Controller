@@ -38,6 +38,7 @@ flash: all
 	dfu-programmer atmega32u4 erase
 	dfu-programmer atmega32u4 flash $(HEX)
 
+.PHONY: clean
 clean:
 	rm -r $(BUILD_DIR)
 
