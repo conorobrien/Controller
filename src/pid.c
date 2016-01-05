@@ -57,22 +57,24 @@ void pid_setup(uint8_t n, uint16_t pfreq) {
   pid_freq = pfreq;
 
   pids = malloc(pids_max*sizeof(pid_t));
+}
 
-  // Set main clock to 16MHz
-  CLKPR = (1<<CLKPCE);
-  CLKPR = 0;
+void pid_start(void) {
+  // set to pid_freq Hz
+  OCR1A = F_CPU/64/pid_freq;
   // Timer 1 to CTC, TOP is OCR1A
   TCCR1B |= _BV(WGM12);
-  // Turn on timer 1, prescale 64
-  TCCR1B |= _BV(CS11)|_BV(CS10);
-  // set to 100Hz
-  OCR1A = F_CPU/64/pid_freq;
   // Unmask timer interrupt
   TIMSK1 |= _BV(OCIE1A);
+  // Turn on timer 1, prescale 64
+  TCCR1B |= _BV(CS11)|_BV(CS10);
   // Turn on interrupts
   sei();
 }
 
+void pid_stop(void) {
+  TCCR1B &= ~(_BV(CS11)|_BV(CS10));
+}
 
 void pid_add(float (*pid_input)(void), void (*pid_output)(float)) {
   if (pid_n < pids_max && pids) {
@@ -93,7 +95,6 @@ void pid_set_coefs(uint8_t n, float kp_in, float ki_in, float kd_in) {
 }
 
 void pid_set_target(uint8_t n, float target_in) {
-  if (n < pid_n && pids)
     pids[n].target = target_in;
 }
 

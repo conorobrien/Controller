@@ -1,10 +1,16 @@
 #ifndef _PID
 #define _PID
 
+// Uses timer1 to set up a pid controller loop
+
 #include <stdint.h>
 #include <avr/io.h>
 
 void pid_setup(uint8_t n_pids, uint16_t pid_freq);
+
+void pid_start(void);
+
+void pid_stop(void);
 
 void pid_add(float (*pid_input)(void), void (*pid_output)(float));
 

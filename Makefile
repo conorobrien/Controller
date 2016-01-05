@@ -13,9 +13,11 @@ CC = avr-gcc
 CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm -MMD -MP
 
 # Create targets
+# Either manually define sources, or generate list from SRC_DIR
+# SRCS = $(addprefix $(SRC_DIR), main.c)
 SRCS = $(wildcard $(SRC_DIR)*.c)
 OBJS = $(subst $(SRC_DIR), $(BUILD_DIR), $(SRCS:.c=.o))
-LIBS = $(wildcard $(LIB_DIR)/*.a)
+LIBS = $(wildcard $(LIB_DIR)*.a)
 DEPS = $(OBJS:.o=.d)
 ELF = $(BUILD_DIR)main.elf
 HEX = $(BUILD_DIR)main.hex
@@ -25,10 +27,10 @@ all: $(HEX)
 -include $(DEPS)
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I $(INC_DIR)
+	$(CC) $(CFLAGS) -I $(INC_DIR) -c $< -o $@ 
 
 $(ELF): $(OBJS)
-	$(CC) $(CFLAGS) -o $(BUILD_DIR)main.elf $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $(ELF) $(OBJS) $(LIBS)
 
 $(HEX): $(ELF)
 	rm -f $(HEX)
@@ -40,7 +42,7 @@ flash: all
 
 .PHONY: clean
 clean:
-	rm -r $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 disasm: $(ELF)
 	avr-objdump -d $(ELF)
