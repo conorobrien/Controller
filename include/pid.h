@@ -1,5 +1,4 @@
-#ifndef _PID
-#define _PID
+#pragma once
 
 // Uses timer1 to set up a pid controller loop
 
@@ -23,5 +22,3 @@ void pid_set_int_limits(uint8_t n, float min, float max);
 void pid_set_output_limits(uint8_t n, float min, float max);
 
 void pid_destroy(void);
-
-#endif

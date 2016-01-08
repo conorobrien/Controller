@@ -1,5 +1,4 @@
-#ifndef _MOTORS
-#define _MOTORS
+#pragma once
 
 #include <stdint.h>
 #include <avr/io.h>
@@ -89,5 +88,3 @@ void motor_set(uint8_t n, uint8_t dir, uint8_t duty) {
   else if (n == 1)
     OCR0B = duty;
 }
-
-#endif

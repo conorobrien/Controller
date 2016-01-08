@@ -1,5 +1,4 @@
-#ifndef _ENCODER
-#define _ENCODER
+#pragma once
 
 // define ENC_LED to have direction and freqency LEDs
 
@@ -76,5 +75,3 @@ ISR(INT2_vect) {
     #endif 
   }
 }
-
-#endif

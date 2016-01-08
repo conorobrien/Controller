@@ -1,5 +1,4 @@
-#ifndef _M_LEDS
-#define _M_LEDS
+#pragma once
 
 #define RED 6
 #define GREEN 2
