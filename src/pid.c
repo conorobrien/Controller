@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
@@ -52,11 +53,22 @@ void pid_default(pid_t* input) {
   input->i_min = input->out_min = -1E37;
 }
 
-void pid_setup(uint8_t n, uint16_t pfreq) {
+bool pid_setup(uint8_t n, uint16_t pfreq) {
   pids_max = n;
   pid_freq = pfreq;
 
-  pids = malloc(pids_max*sizeof(pid_t));
+  if (!pids) {
+    pids = malloc(pids_max*sizeof(pid_t));
+  } else {
+    pid_t *pids_temp = realloc(pids, pids_max*sizeof(pid_t));
+    if (!pids_temp)
+      pids = pids_temp;
+    else
+      return false;
+  }
+
+  return !pids; // return bool for sucessful malloc or ralloc
+
 }
 
 void pid_start(void) {

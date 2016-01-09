@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <avr/io.h>
 
-void pid_setup(uint8_t n_pids, uint16_t pid_freq);
+bool pid_setup(uint8_t n_pids, uint16_t pid_freq);
 
 void pid_start(void);
 
