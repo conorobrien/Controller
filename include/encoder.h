@@ -1,5 +1,4 @@
 #pragma once
-
 // define ENC_LED to have direction and freqency LEDs
 
 #include <stdbool.h>
@@ -7,11 +6,15 @@
 #include <avr/io.h>
 #include <util/atomic.h>
 
+#ifndef ENC_TYPE
+#define ENC_TYPE int16_t
+#endif
+
 #define ENC_A (bool)(PIND & _BV(1))
 #define ENC_B (bool)(PIND & _BV(2))
 
-volatile long _enc_count = 0;
-long _enc_tmp = 0;
+volatile ENC_TYPE _enc_count = 0;
+ENC_TYPE _enc_tmp = 0;
 
 void enc_setup(void) {
   // set INT0 and INT1 to trigger on rising and falling edges
@@ -28,14 +31,14 @@ void enc_setup(void) {
   #endif
 }
 
-long enc_read(void) {
+ENC_TYPE enc_read(void) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     _enc_tmp = _enc_count;
   }
   return _enc_tmp;
 }
 
-void enc_set(long in) {
+void enc_set(ENC_TYPE in) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     _enc_count = in;
   }

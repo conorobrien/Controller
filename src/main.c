@@ -1,9 +1,12 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include <util/delay.h>
+
 // #define ENC_LED
 #include "encoder.h"
 #include "m_usb.h"
 #include "motors.h"
 #include "pid.h"
-#include <util/delay.h>
 
 float pid_in(void) {
   return enc_read();
