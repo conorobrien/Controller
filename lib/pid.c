@@ -52,10 +52,8 @@ uint8_t pid_setup(uint8_t n, uint16_t pfreq) {
     pids = calloc(pids_max, sizeof(pid_t));
   } else {
     pid_t *pids_temp = realloc(pids, pids_max*sizeof(pid_t));
-    if (!pids_temp)
+    if (pids_temp)
       pids = pids_temp;
-    else
-      return false;
   }
 
   return (pids != NULL) ? 0 : -1; // return 0 for success, -1 for fail

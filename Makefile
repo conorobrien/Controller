@@ -1,16 +1,23 @@
 # Important directories
+<<<<<<< HEAD
 INC_DIR = ./include/
 SRC_DIR = ./src/
 LIB_DIR = ./lib/
 BUILD_DIR = ./build/
+=======
+INC_DIR 	= ./include/
+SRC_DIR 	= ./src/
+LIB_DIR 	= ./libs/
+BUILD_DIR 	= ./build/
+>>>>>>> refs/remotes/origin/master
 
 # Change for different avrs and clock speeds
-DEVICE = atmega32u4
-CLOCK = 16000000
+DEVICE 		= atmega32u4
+CLOCK 		= 16000000
 
 # Compiler settings
-CC = avr-gcc
-CFLAGS = -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm -MMD -MP
+CC 			= avr-gcc
+CFLAGS 		= -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -std=c99 -Wall -Os -lm -MMD -MP
 
 # Create targets
 # Either manually define sources, or generate list from SRC_DIR
