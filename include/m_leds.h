@@ -13,7 +13,7 @@ void led_init(uint8_t type) {
   PORTE |= _BV(type);
 }
 
-void led_on(uint8_t type, uint8_t op) {
+void led(uint8_t type, uint8_t op) {
   switch op {
     case OFF:
       PORTE |= _BV(type);

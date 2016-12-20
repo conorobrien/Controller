@@ -3,9 +3,8 @@
 // Uses timer1 to set up a pid controller loop
 
 #include <stdint.h>
-#include <avr/io.h>
 
-bool pid_setup(uint8_t n_pids, uint16_t pid_freq);
+uint8_t pid_setup(uint8_t n_pids, uint16_t pid_freq);
 
 void pid_start(void);
 

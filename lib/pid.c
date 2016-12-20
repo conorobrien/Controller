@@ -6,10 +6,6 @@
 
 #include "pid.h"
 
-#ifndef F_CPU
-  #define F_CPU 16000000UL
-#endif
-
 uint8_t pids_max = 0;
 uint8_t pid_n = 0;
 uint16_t pid_freq = 100;
@@ -24,16 +20,11 @@ typedef struct {
   // Previous input (for derivative)
   float input_last;
   // Coefficients
-  float kp;
-  float ki;
-  float kd;
+  float kp, ki, kd;
   // Integral error accumulator
   float err_i;
   // Limits for output and integral error
-  float i_max;
-  float i_min;
-  float out_max;
-  float out_min;
+  float i_max, i_min, out_max, out_min;
 } pid_t;
 
 pid_t* pids = NULL;
@@ -53,12 +44,12 @@ void pid_default(pid_t* input) {
   input->i_min = input->out_min = -1E37;
 }
 
-bool pid_setup(uint8_t n, uint16_t pfreq) {
+uint8_t pid_setup(uint8_t n, uint16_t pfreq) {
   pids_max = n;
   pid_freq = pfreq;
 
   if (!pids) {
-    pids = malloc(pids_max*sizeof(pid_t));
+    pids = calloc(pids_max, sizeof(pid_t));
   } else {
     pid_t *pids_temp = realloc(pids, pids_max*sizeof(pid_t));
     if (!pids_temp)
@@ -67,7 +58,7 @@ bool pid_setup(uint8_t n, uint16_t pfreq) {
       return false;
   }
 
-  return !pids; // return bool for sucessful malloc or ralloc
+  return (pids != NULL) ? 0 : -1; // return 0 for success, -1 for fail
 
 }
 
@@ -85,11 +76,11 @@ void pid_start(void) {
 }
 
 void pid_stop(void) {
-  TCCR1B &= ~(_BV(CS11)|_BV(CS10));
+  TCCR1B &= (uint8_t)~(_BV(CS11)|_BV(CS10));
 }
 
 void pid_add(float (*pid_input)(void), void (*pid_output)(float)) {
-  if (pid_n < pids_max && pids) {
+  if (pids && pid_n < pids_max) {
     pids[pid_n].out = pid_output;
     pids[pid_n].in = pid_input;
     pid_default(&pids[pid_n]);
